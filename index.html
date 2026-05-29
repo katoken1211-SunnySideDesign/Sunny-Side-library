@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AIプロンプト集 - SUNNY SIDE DESIGN</title>
+<title>Sunny library - SUNNY SIDE DESIGN</title>
 <style>
   :root {
     --primary: #b84b3e;
@@ -79,6 +79,53 @@
     .container {
       padding: 40px;
     }
+  }
+
+  /* 検索・フィルターUI */
+  .controls {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  @media (min-width: 768px) {
+    .controls {
+      flex-direction: row;
+    }
+  }
+
+  .search-input, .category-select {
+    padding: 12px 16px;
+    border: 1px solid var(--gray-light);
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 14px;
+    background-color: var(--white);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .search-input:focus, .category-select:focus {
+    border-color: var(--secondary);
+  }
+
+  .search-input {
+    flex: 1;
+  }
+
+  .category-select {
+    min-width: 200px;
+    cursor: pointer;
+  }
+
+  .no-results {
+    text-align: center;
+    color: var(--gray-text);
+    font-size: 14px;
+    padding: 40px;
+    grid-column: 1 / -1;
   }
 
   .loading {
@@ -235,11 +282,17 @@
 <body>
 
   <header>
-    <h1>AI Prompts</h1>
+    <h1>Sunny library</h1>
     <p class="subtitle">SUNNY SIDE DESIGN - 業務効率化プロンプト集</p>
   </header>
 
   <div class="container">
+    <div class="controls" id="controls" style="display: none;">
+      <input type="text" id="searchInput" class="search-input" placeholder="タイトルの文字で検索...">
+      <select id="categorySelect" class="category-select">
+        <option value="">すべてのカテゴリー</option>
+      </select>
+    </div>
     <div id="loading" class="loading">データを読み込んでいます...</div>
     <div id="prompt-list" class="prompt-list"></div>
   </div>
@@ -248,6 +301,8 @@
 
   <script>
     const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQHEiUXeBRKHPOpnrh_4zLdFnviIF-Euy2G7tGo84gzmqh-boMwbxFwjTPzUuetX38NSUmqps9iy5sG/pub?output=csv';
+
+    let allPrompts = [];
 
     /**
      * CSVデータを取得・パースする関数（非同期）
@@ -326,21 +381,71 @@
      */
     async function init() {
       const loadingEl = document.getElementById('loading');
+      const controlsEl = document.getElementById('controls');
       const listEl = document.getElementById('prompt-list');
       
       try {
-        const prompts = await fetchPrompts();
+        allPrompts = await fetchPrompts();
         loadingEl.style.display = 'none';
         
-        if (prompts && prompts.length > 0) {
-          listEl.innerHTML = prompts.map(p => createCardHTML(p)).join('');
+        if (allPrompts && allPrompts.length > 0) {
+          controlsEl.style.display = 'flex';
+          populateCategories();
+          renderPrompts();
+          
+          // 検索とフィルターのイベントリスナー
+          document.getElementById('searchInput').addEventListener('input', renderPrompts);
+          document.getElementById('categorySelect').addEventListener('change', renderPrompts);
         } else {
-          listEl.innerHTML = '<p style="text-align: center; color: #666;">プロンプトが見つかりませんでした。</p>';
+          listEl.innerHTML = '<p class="no-results">プロンプトが見つかりませんでした。</p>';
         }
       } catch (error) {
         console.error("Initialization error:", error);
         loadingEl.innerText = `データの読み込みに失敗しました：${error.message}`;
         loadingEl.style.color = '#b84b3e'; // テラコッタレッドでエラーを目立たせる
+      }
+    }
+
+    /**
+     * カテゴリー選択肢を生成する関数
+     */
+    function populateCategories() {
+      const select = document.getElementById('categorySelect');
+      const targets = new Set();
+      
+      allPrompts.forEach(p => {
+        if (p.target && p.target.trim() !== '') {
+          targets.add(p.target.trim());
+        }
+      });
+      
+      const sortedTargets = Array.from(targets).sort();
+      sortedTargets.forEach(target => {
+        const option = document.createElement('option');
+        option.value = target;
+        option.textContent = target;
+        select.appendChild(option);
+      });
+    }
+
+    /**
+     * プロンプトをフィルタリングして表示する関数
+     */
+    function renderPrompts() {
+      const searchText = document.getElementById('searchInput').value.toLowerCase();
+      const selectedCategory = document.getElementById('categorySelect').value;
+      const listEl = document.getElementById('prompt-list');
+      
+      const filtered = allPrompts.filter(p => {
+        const matchesSearch = (p.title || '').toLowerCase().includes(searchText);
+        const matchesCategory = selectedCategory === '' || (p.target || '').trim() === selectedCategory;
+        return matchesSearch && matchesCategory;
+      });
+      
+      if (filtered.length > 0) {
+        listEl.innerHTML = filtered.map(p => createCardHTML(p)).join('');
+      } else {
+        listEl.innerHTML = '<p class="no-results">条件に一致するプロンプトがありません。</p>';
       }
     }
 
