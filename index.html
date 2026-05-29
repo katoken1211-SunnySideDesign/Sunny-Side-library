@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIプロンプト集 - SUNNY SIDE DESIGN</title>
+<style>
+  :root {
+    --primary: #b84b3e;
+    --secondary: #3a9bc4;
+    --bg: #f9f9f9;
+    --text: #333333;
+    --white: #ffffff;
+    --gray-light: #eeeeee;
+    --gray-text: #666666;
+    --font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', sans-serif;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: var(--font-family);
+    background-color: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--white);
+    border-top: 4px solid var(--primary);
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  @media (min-width: 768px) {
+    header {
+      padding: 24px 40px;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+  }
+
+  h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 4px 0;
+    border-left: 2px solid var(--primary);
+    padding-left: 16px;
+  }
+
+  p.subtitle {
+    font-size: 12px;
+    color: var(--gray-text);
+    opacity: 0.8;
+    margin: 0;
+    padding-left: 18px;
+  }
+
+  .container {
+    max-width: 1024px;
+    margin: 0 auto;
+    padding: 40px 20px;
+    flex: 1;
+    width: 100%;
+  }
+
+  @media (min-width: 768px) {
+    .container {
+      padding: 40px;
+    }
+  }
+
+  .loading {
+    text-align: center;
+    color: var(--gray-text);
+    font-size: 14px;
+    padding: 40px;
+  }
+
+  .prompt-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  @media (min-width: 768px) {
+    .prompt-list {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  /* カードデザイン */
+  .prompt-card {
+    background: var(--white);
+    border: 1px solid rgba(0,0,0,0.08);
+    border-left: 4px solid var(--primary);
+    border-radius: 4px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+  }
+
+  .prompt-card:nth-child(even) {
+    border-left-color: var(--secondary);
+  }
+
+  .prompt-card-header {
+    margin-bottom: 12px;
+  }
+
+  .prompt-target {
+    font-size: 11px;
+    padding: 2px 8px;
+    border: 1px solid var(--gray-light);
+    border-radius: 100px;
+    color: var(--gray-text);
+    text-transform: uppercase;
+    font-weight: 600;
+    display: inline-block;
+    margin-bottom: 8px;
+  }
+
+  .prompt-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+    line-height: 1.4;
+  }
+
+  .prompt-description {
+    font-size: 13px;
+    color: var(--gray-text);
+    line-height: 1.5;
+    margin-bottom: 12px;
+  }
+
+  .prompt-content-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+  }
+
+  .prompt-text-container {
+    background: var(--gray-light);
+    border-radius: 4px;
+    padding: 12px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #444;
+    font-family: 'Courier New', Courier, monospace;
+    border: 1px dashed #ccc;
+    margin-bottom: 16px;
+    flex-grow: 1;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  .copy-btn {
+    background-color: var(--secondary);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: opacity 0.2s;
+    font-size: 13px;
+  }
+
+  .copy-btn:hover {
+    opacity: 0.9;
+  }
+
+  .copy-btn svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+  }
+
+  /* トースト通知 */
+  .toast {
+    position: fixed;
+    bottom: 40px;
+    right: 40px;
+    background: var(--text);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 4px;
+    font-size: 14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    transform: translateY(100px);
+    transition: transform 0.3s ease, opacity 0.3s ease, visibility 0.3s ease;
+    z-index: 100;
+    pointer-events: none;
+    visibility: hidden;
+    opacity: 0;
+    text-align: center;
+  }
+
+  @media (max-width: 768px) {
+    .toast {
+      bottom: 20px;
+      right: 20px;
+      left: 20px;
+    }
+  }
+
+  .toast.show {
+    transform: translateY(0);
+    visibility: visible;
+    opacity: 1;
+  }
+</style>
+<!-- CSVの安全なパースのためにPapaParseをCDNから読み込みます -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+</head>
+<body>
+
+  <header>
+    <h1>AI Prompts</h1>
+    <p class="subtitle">SUNNY SIDE DESIGN - 業務効率化プロンプト集</p>
+  </header>
+
+  <div class="container">
+    <div id="loading" class="loading">データを読み込んでいます...</div>
+    <div id="prompt-list" class="prompt-list"></div>
+  </div>
+
+  <div id="toast" class="toast">コピーしました！</div>
+
+  <script>
+    const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQHEiUXeBRKHPOpnrh_4zLdFnviIF-Euy2G7tGo84gzmqh-boMwbxFwjTPzUuetX38NSUmqps9iy5sG/pub?output=csv';
+
+    /**
+     * CSVデータを取得・パースする関数（非同期）
+     */
+    async function fetchPrompts() {
+      const response = await fetch(SHEET_CSV_URL);
+      if (!response.ok) {
+        throw new Error(`データの取得に失敗しました (ステータス: ${response.status})`);
+      }
+      
+      const csvText = await response.text();
+      
+      return new Promise((resolve, reject) => {
+        Papa.parse(csvText, {
+          header: true,
+          skipEmptyLines: true,
+          error: function(err) {
+            reject(new Error(`CSVのパースに失敗しました: ${err.message}`));
+          },
+          complete: function(results) {
+            if (results.errors.length > 0 && results.data.length === 0) {
+              reject(new Error(`CSVの書式エラー: ${results.errors[0].message}`));
+              return;
+            }
+            resolve(results.data);
+          }
+        });
+      });
+    }
+
+    /**
+     * プロンプトカードのHTML部品を生成する関数
+     */
+    function createCardHTML(prompt) {
+      // XSS対策の簡易サニタイズ
+      const escapeHTML = (str) => {
+        if (!str) return '';
+        return str.replace(/[&<>'"]/g, 
+          tag => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            "'": '&#39;',
+            '"': '&quot;'
+          }[tag] || tag)
+        );
+      };
+
+      const title = escapeHTML(prompt.title);
+      const target = escapeHTML(prompt.target);
+      const desc = escapeHTML(prompt.description);
+      const text = escapeHTML(prompt.prompt_text);
+
+      return `
+        <div class="prompt-card">
+          <div class="prompt-card-header">
+            ${target ? `<span class="prompt-target">${target}</span>` : ''}
+            <h2 class="prompt-title">${title}</h2>
+            ${desc ? `<p class="prompt-description">${desc}</p>` : ''}
+          </div>
+          <div class="prompt-content-wrapper">
+            <div class="prompt-text-container">${text}</div>
+            <button class="copy-btn" onclick="copyPrompt(this)">
+              <svg viewBox="0 0 24 24">
+                <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+              </svg>
+              コピーする
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    /**
+     * 初期化処理
+     */
+    async function init() {
+      const loadingEl = document.getElementById('loading');
+      const listEl = document.getElementById('prompt-list');
+      
+      try {
+        const prompts = await fetchPrompts();
+        loadingEl.style.display = 'none';
+        
+        if (prompts && prompts.length > 0) {
+          listEl.innerHTML = prompts.map(p => createCardHTML(p)).join('');
+        } else {
+          listEl.innerHTML = '<p style="text-align: center; color: #666;">プロンプトが見つかりませんでした。</p>';
+        }
+      } catch (error) {
+        console.error("Initialization error:", error);
+        loadingEl.innerText = `データの読み込みに失敗しました：${error.message}`;
+        loadingEl.style.color = '#b84b3e'; // テラコッタレッドでエラーを目立たせる
+      }
+    }
+
+    /**
+     * クリップボードへコピーする関数
+     */
+    window.copyPrompt = function(buttonEl) {
+      const wrapper = buttonEl.closest('.prompt-content-wrapper');
+      const textContainer = wrapper.querySelector('.prompt-text-container');
+      const textToCopy = textContainer.innerText || textContainer.textContent;
+
+      if (navigator.clipboard && window.isSecureContext) {
+        // navigator.clipboard APIを使用
+        navigator.clipboard.writeText(textToCopy).then(() => {
+          showToast();
+        }).catch(err => {
+          console.error('コピー失敗:', err);
+          fallbackCopyTextToClipboard(textToCopy);
+        });
+      } else {
+        // 古いブラウザ・非HTTPS環境用フォールバック
+        fallbackCopyTextToClipboard(textToCopy);
+      }
+    };
+
+    function fallbackCopyTextToClipboard(text) {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      // 画面外に配置
+      textArea.style.position = "fixed";
+      textArea.style.top = "-9999px";
+      textArea.style.left = "-9999px";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+
+      try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+          showToast();
+        } else {
+          alert('コピーに失敗しました。');
+        }
+      } catch (err) {
+        console.error('Fallback: Oops, unable to copy', err);
+        alert('コピーに失敗しました。');
+      }
+      document.body.removeChild(textArea);
+    }
+
+    /**
+     * トースト通知を表示する関数
+     */
+    let toastTimeout;
+    function showToast() {
+      const toast = document.getElementById('toast');
+      toast.className = 'toast show';
+      
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.className = toast.className.replace('show', '');
+      }, 3000);
+    }
+
+    // DOM読み込み完了時に初期化
+    document.addEventListener('DOMContentLoaded', init);
+
+  </script>
+</body>
+</html>
